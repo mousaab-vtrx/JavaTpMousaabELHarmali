@@ -8,13 +8,13 @@ CREATE TABLE holidays (
 );
 CREATE TABLE employees (
     id INTEGER PRIMARY KEY,
-    nom VARCHAR(100),
-    prenom VARCHAR(100),
-    email VARCHAR(100),
+    nom VARCHAR(30),
+    prenom VARCHAR(30),
+    email VARCHAR not null,
     salaire NUMERIC check(salaire >= 4000),
-    role VARCHAR(50) ,
-    poste VARCHAR(50),
-    telephone VARCHAR(10),
-    solde INTEGER n
+    role VARCHAR,
+    poste VARCHAR,
+    telephone CHAR(10),
+    solde INTEGER not null
 );
 
