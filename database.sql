@@ -1,10 +1,13 @@
---DATABASE NAME :JavaTp
-DROP TRIGGER IF EXISTS trigSoldeLogic on holidays;
-DROP FUNCTION IF EXISTS retrieveOldValues;
-DROP TABLE IF EXISTS holidays;
-DROP TABLE IF EXISTS employees;
-DROP TABLE IF EXISTS users;
+-- DATABASE NAME :JavaTp
+DROP TRIGGER IF EXISTS trigSoldeLogicUpdate ON holidays;
+DROP TRIGGER IF EXISTS trigSoldeLogicDelete ON holidays;
 
+DROP FUNCTION IF EXISTS retrieveOldValuesUpdate;
+DROP FUNCTION IF EXISTS retrieveOldValuesDelete;
+
+DROP TABLE IF EXISTS holidays CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 CREATE TABLE employees (
     idEmployee serial PRIMARY KEY,
@@ -14,32 +17,73 @@ CREATE TABLE employees (
     salaire NUMERIC CHECK(salaire >= 4000),
     role VARCHAR,
     poste VARCHAR,
-    telephone CHAR(10),
-    solde INTEGER default 25
+    telephone VARCHAR(10),
+    solde INTEGER DEFAULT 25
 );
 
 CREATE TABLE holidays (
-    id serial primary key,
+    id serial PRIMARY KEY,
     idEmployee INTEGER,
     startdate DATE NOT NULL,
     enddate DATE NOT NULL,
     holidaytype VARCHAR NOT NULL,
-	CONSTRAINT idEmployee_fkey FOREIGN KEY (idEmployee) REFERENCES employees (idEmployee)
-	ON UPDATE CASCADE ON DELETE CASCADE
+    CONSTRAINT idEmployee_fkey FOREIGN KEY (idEmployee) REFERENCES employees (idEmployee)
+    ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE TABLE users(
-	id Serial PRIMARY KEY,
-	username VARCHAR not null,
-	password char(8) not null 
+CREATE TABLE users (
+    id serial PRIMARY KEY,
+    username VARCHAR NOT NULL,
+    password CHAR(8) NOT NULL
 );
-Create or Replace FUNCTION retrieveOldValues() 
-returns Trigger language plpgsql AS $$
-Begin 
-    update employees set solde = OLD.solde where idEmployee = NEW.idEmployee;
-    return NEW;
+
+CREATE OR REPLACE FUNCTION retrieveOldValuesUpdate() 
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    oldDays INTEGER;
+    newDays INTEGER;
+BEGIN 
+    oldDays := (OLD.enddate - OLD.startdate + 1);
+    newDays := (NEW.enddate - NEW.startdate + 1);
+
+    UPDATE employees
+    SET solde = solde + oldDays - newDays
+    WHERE idEmployee = NEW.idEmployee;
+
+    RETURN NEW;
 END;
 $$;
 
-Create Trigger trigSoldeLogic  before update ON holidays for each row execute Function retrieveOldValues();
-select * from employees;
+CREATE OR REPLACE FUNCTION retrieveOldValuesDelete() 
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    days INTEGER;
+BEGIN 
+    days := (OLD.enddate - OLD.startdate + 1);
+
+    UPDATE employees
+    SET solde = solde + days
+    WHERE idEmployee = OLD.idEmployee;
+
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER trigSoldeLogicUpdate 
+BEFORE UPDATE ON holidays 
+FOR EACH ROW 
+EXECUTE FUNCTION retrieveOldValuesUpdate();
+
+CREATE TRIGGER trigSoldeLogicDelete 
+BEFORE DELETE ON holidays 
+FOR EACH ROW 
+EXECUTE FUNCTION retrieveOldValuesDelete();
+
+INSERT INTO users(username, password) 
+VALUES 
+    ('mousaab', '12344321'),
+    ('aya', '56788765'),
+    ('sara', 'sarasara'),
+    ('amine', 'aminamin');
+
+SELECT * FROM employees;
